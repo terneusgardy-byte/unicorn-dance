@@ -1,0 +1,281 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>{{ name|default('Magical Party') }}</title>
+<style>
+  :root{
+    /* PURPLE bars for both progress + volume */
+    --seek-track:#ebe7ff; --seek-fill:#7c5cff;
+    --vol-track:#ebe7ff;  --vol-fill:#7c5cff;
+  }
+  *{box-sizing:border-box}
+  html,body{margin:0;background:#efe8ff;font-family:ui-rounded,system-ui,-apple-system,Segoe UI,Roboto,sans-serif;color:#2a2466}
+  .wrap{max-width:1180px;margin:28px auto;padding:8px 18px}
+  h1{margin:0 0 6px;font-size:42px;text-align:center}
+  .sub{margin:2px 0 18px;text-align:center;color:#6b6b8a}
+
+  /* Stage */
+  .stage{
+    display:grid;grid-template-columns:1fr 1fr 1fr;gap:26px;
+    background:linear-gradient(180deg,#f9f8ff 0%, #f2f7ff 100%);
+    padding:26px;border-radius:24px;box-shadow:0 20px 50px rgba(0,0,0,.12);min-height:360px
+  }
+  .cell{
+    border-radius:22px;background:#fff;
+    box-shadow:0 12px 35px rgba(31,26,66,.10), inset 0 1px 0 rgba(255,255,255,.7);
+    min-height:340px;display:grid;place-items:center;overflow:hidden
+  }
+  .fit{max-width:min(92%,440px);max-height:320px;transition:filter .25s ease}
+  .emoji{font-size:150px;line-height:1;filter:drop-shadow(0 12px 22px rgba(0,0,0,.12))}
+
+  /* Animations */
+  .dance-left {animation:wiggle .85s ease-in-out infinite}
+  .dance-mid  {animation:bob 1.1s ease-in-out  infinite}
+  .dance-right{animation:wiggle .95s ease-in-out infinite reverse}
+  @keyframes bob{0%{transform:translateY(0)}50%{transform:translateY(-10px)}100%{transform:translateY(0)}}
+  @keyframes wiggle{0%{transform:translateY(0) rotate(-8deg)}50%{transform:translateY(-6px) rotate(6deg)}100%{transform:translateY(0) rotate(-8deg)}}
+
+  /* Soft theme tint by outfit */
+  body[data-theme="sparkle"]  .stage{background:linear-gradient(180deg,#faf7ff,#f2f7ff)}
+  body[data-theme="rainbow"]  .stage{background:linear-gradient(180deg,#fff7fb,#f1faff)}
+  body[data-theme="butterfly"] .stage{background:linear-gradient(180deg,#f6fff7,#f0f6ff)}
+  body[data-theme="star"]      .stage{background:linear-gradient(180deg,#f8fbff,#eef3ff)}
+
+  /* Controls (keep your button colors) */
+  .controls{display:flex;flex-wrap:wrap;gap:12px;justify-content:center;margin:22px 0 8px;align-items:center}
+  .btn{border:0;padding:10px 16px;border-radius:999px;font-weight:700;letter-spacing:.2px;
+       box-shadow:0 8px 18px rgba(0,0,0,.08);cursor:pointer;transition:transform .05s ease}
+  .btn:active{transform:translateY(1px)}
+  .start{background:linear-gradient(90deg,#6f54ff,#a58bff);color:#fff}   /* purple gradient */
+  .stop {background:#fff;color:#6b6b8a}
+  .rand {background:#ffd66b;color:#6b5600}                               /* gold */
+  .prev,.next{background:#bde0fe;color:#1b4b7a}                           /* blue */
+  .shuf{background:#8ecae6;color:#164b63}                                 /* cyan */
+  .back{background:#fff;color:#6b6b8a;border:1px solid #e6e6f3}
+  .picker{
+    appearance:none;border:1px solid #e6e6f3;background:#fff;border-radius:999px;
+    padding:10px 14px;font-weight:700;color:#574b90;box-shadow:0 6px 14px rgba(0,0,0,.06)
+  }
+
+  /* Sliders */
+  .row{display:grid;grid-template-columns:60px 1fr 60px;gap:16px;align-items:center;max-width:780px;margin:8px auto 0}
+  .time{font-variant-numeric:tabular-nums;text-align:center;color:#6b6b8a;font-size:14px}
+  .bar{appearance:none;width:100%;height:10px;border-radius:999px;background:var(--seek-track);outline:none;box-shadow:inset 0 2px 4px rgba(0,0,0,.08)}
+  .bar::-webkit-slider-runnable-track{height:10px;border-radius:999px;background:linear-gradient(90deg,var(--seek-fill) var(--pct,0%), var(--seek-track) 0)}
+  .bar::-webkit-slider-thumb{appearance:none;width:16px;height:16px;border-radius:50%;background:#fff;border:2px solid var(--seek-fill);margin-top:-3px;box-shadow:0 1px 4px rgba(0,0,0,.25)}
+  .vol{--seek-track:var(--vol-track);--seek-fill:var(--vol-fill)}
+  .now{text-align:center;color:#6b6b8a;font-weight:600;margin-top:10px}
+
+  @media (max-width:760px){
+    .stage{grid-template-columns:1fr}
+    .cell{min-height:240px}
+    .fit{max-height:220px}
+  }
+</style>
+</head>
+<body data-theme="{{ outfit|default('sparkle') }}">
+  <div class="wrap">
+    <h1>{{ name|default('Magical Unicorn Party') }} ✨🦄</h1>
+    <div class="sub">Outfit: <strong id="outfitLabel">{{ outfit|title }}</strong> · Music: <span id="musicLabel">{{ music }}</span></div>
+
+    <div class="stage" id="stage">
+      <!-- Left dancer -->
+      <div class="cell">
+        <img id="girl" class="fit dance-left"
+             src="{{ url_for('static', filename='img/ballerina-1298158_640.png') }}"
+             alt="Dancer left">
+      </div>
+      <!-- Middle (unicorn emoji) -->
+      <div class="cell">
+        <div id="uni" class="emoji dance-mid">🦄</div>
+      </div>
+      <!-- Right dancer -->
+      <div class="cell">
+        <img id="boy" class="fit dance-right"
+             src="{{ url_for('static', filename='img/man-dancing-svgrepo-com.svg') }}"
+             alt="Dancer right">
+      </div>
+    </div>
+
+    <!-- Controls -->
+    <div class="controls">
+      <button id="playBtn"  class="btn start">✨ Start Dance</button>
+      <button id="stopBtn"  class="btn stop">⏸ Stop</button>
+      <button id="randBtn"  class="btn rand">✨ Random Outfit</button>
+      <select id="outfitSelect" class="picker" title="Pick Outfit"></select>
+      <button id="prevBtn"  class="btn prev">⏮︎ Prev</button>
+      <button id="nextBtn"  class="btn next">⏭︎ Next</button>
+      <button id="shufBtn"  class="btn shuf">🔀 Shuffle</button>
+      <a href="/" class="btn back">↪ Go Back</a>
+    </div>
+
+    <!-- Progress -->
+    <div class="row">
+      <div class="time" id="tCur">0:00</div>
+      <input id="seek" class="bar" type="range" min="0" max="1000" value="0">
+      <div class="time" id="tMax">0:00</div>
+    </div>
+    <!-- Volume -->
+    <div class="row">
+      <div class="time">🔊</div>
+      <input id="vol" class="bar vol" type="range" min="0" max="100" value="80">
+      <div class="time" id="volNum">80%</div>
+    </div>
+
+    <div class="now">Now playing: <span id="nowTitle">—</span></div>
+  </div>
+
+  <!-- Audio -->
+  <audio id="music" preload="auto">
+    <source src="{{ url_for('static', filename='music/' + music) }}" type="audio/mpeg">
+  </audio>
+
+<script>
+/* ===== Tracks from Flask ===== */
+const TRACKS = {{ tracks|tojson }};
+let idx = Math.max(0, TRACKS.findIndex(t => t.file === "{{ music }}"));
+
+/* ===== Outfit definitions (strong filters for clear color changes) ===== */
+const OUTFITS = [
+  { key:'sparkle',   label:'Sparkle',   theme:'sparkle',
+    womanFilter:'sepia(0.25) saturate(2.0) hue-rotate(310deg) brightness(1.06) contrast(1.05)',
+    manFilter:  'sepia(0.35) saturate(2.2) hue-rotate(290deg) brightness(1.08) contrast(1.08)',
+    womanSrc:null, manSrc:null },
+  { key:'rainbow',   label:'Rainbow',   theme:'rainbow',
+    womanFilter:'sepia(0.35) saturate(2.4) hue-rotate(35deg) brightness(1.05) contrast(1.06)',
+    manFilter:  'sepia(0.40) saturate(2.6) hue-rotate(150deg) brightness(1.06) contrast(1.07)',
+    womanSrc:null, manSrc:null },
+  { key:'butterfly', label:'Butterfly', theme:'butterfly',
+    womanFilter:'sepia(0.30) saturate(2.5) hue-rotate(265deg) brightness(1.08) contrast(1.08)',
+    manFilter:  'sepia(0.45) saturate(2.7) hue-rotate(90deg)  brightness(1.08) contrast(1.10)',
+    womanSrc:null, manSrc:null },
+  { key:'star',      label:'Star',      theme:'star',
+    womanFilter:'sepia(0.28) saturate(2.2) hue-rotate(210deg) brightness(1.06) contrast(1.08)',
+    manFilter:  'sepia(0.42) saturate(2.5) hue-rotate(15deg)  brightness(1.07) contrast(1.10)',
+    womanSrc:null, manSrc:null },
+];
+const byKey = Object.fromEntries(OUTFITS.map(o=>[o.key,o]));
+
+/* ===== DOM ===== */
+const body   = document.body;
+const girl   = document.getElementById('girl');
+const boy    = document.getElementById('boy');
+const uni    = document.getElementById('uni');
+
+const playBtn= document.getElementById('playBtn');
+const stopBtn= document.getElementById('stopBtn');
+const randBtn= document.getElementById('randBtn');
+const prevBtn= document.getElementById('prevBtn');
+const nextBtn= document.getElementById('nextBtn');
+const shufBtn= document.getElementById('shufBtn');
+
+const outfitSelect = document.getElementById('outfitSelect');
+const outfitLabel  = document.getElementById('outfitLabel');
+
+const player = document.getElementById('music');
+const seek   = document.getElementById('seek');
+const tCur   = document.getElementById('tCur');
+const tMax   = document.getElementById('tMax');
+const vol    = document.getElementById('vol');
+const volNum = document.getElementById('volNum');
+const nowTitle = document.getElementById('nowTitle');
+const musicLabel = document.getElementById('musicLabel');
+
+/* ===== Helpers ===== */
+function fmt(s){ s=Math.floor(s); const m=Math.floor(s/60), r=s%60; return `${m}:${String(r).padStart(2,'0')}`; }
+function paint(el, pct){ el.style.setProperty('--pct', `${pct}%`); }
+function setDancing(on){
+  girl.classList.toggle('dance-left', on);
+  boy .classList.toggle('dance-right', on);
+  uni .classList.toggle('dance-mid', on);
+}
+
+/* ===== Tracks ===== */
+function setTrack(i, autoplay=false){
+  idx = ((i % TRACKS.length)+TRACKS.length)%TRACKS.length;
+  const f = TRACKS[idx].file;
+  player.src = `{{ url_for('static', filename='music/') }}${f}`;
+  const name = TRACKS[idx].name || f.replace(/_/g,' ').replace(/\.mp3$/,'');
+  nowTitle.textContent = name; musicLabel.textContent = name;
+  if(autoplay){
+    player.currentTime=0;
+    player.play().then(()=> setDancing(true)).catch(()=>{});
+  }
+}
+
+/* ===== Outfits ===== */
+function applyOutfit(o){
+  body.setAttribute('data-theme', o.theme);
+  outfitLabel.textContent = o.label;
+
+  if (o.womanSrc) { girl.src = o.womanSrc; girl.style.filter='none'; }
+  else            { girl.style.filter = o.womanFilter; }
+
+  if (o.manSrc)   { boy.src  = o.manSrc;  boy.style.filter='none'; }
+  else            { boy.style.filter  = o.manFilter; }
+}
+function randomOutfit(){
+  const o = OUTFITS[Math.floor(Math.random()*OUTFITS.length)];
+  outfitSelect.value = o.key;   // sync dropdown
+  applyOutfit(o);
+}
+
+/* Build outfit picker */
+(function(){
+  OUTFITS.forEach(o=>{
+    const opt=document.createElement('option'); opt.value=o.key; opt.textContent=o.label;
+    outfitSelect.appendChild(opt);
+  });
+  const initialKey = ({{ (outfit or 'sparkle')|tojson }});
+  outfitSelect.value = byKey[initialKey]?.key || OUTFITS[0].key;
+  applyOutfit(byKey[outfitSelect.value]);
+})();
+outfitSelect.addEventListener('change', ()=> applyOutfit(byKey[outfitSelect.value]));
+
+/* ===== Progress / volume ===== */
+player.addEventListener('loadedmetadata', ()=>{
+  tMax.textContent = fmt(player.duration||0);
+  seek.max = Math.floor((player.duration||0)*1000);
+});
+player.addEventListener('timeupdate', ()=>{
+  seek.value = Math.floor(player.currentTime*1000);
+  const pct = Math.min(100, (player.currentTime/(player.duration||1))*100);
+  paint(seek, pct);
+  tCur.textContent = fmt(player.currentTime||0);
+});
+seek.addEventListener('input', ()=>{
+  player.currentTime = seek.value/1000;
+  const pct = Math.min(100, (player.currentTime/(player.duration||1))*100);
+  paint(seek, pct);
+});
+vol.addEventListener('input', ()=>{
+  const v = vol.value/100; player.volume=v; volNum.textContent=`${Math.round(v*100)}%`; paint(vol, vol.value);
+});
+
+/* ===== Auto-next + Buttons ===== */
+player.addEventListener('ended', ()=> setTrack(idx+1, true));
+
+playBtn.addEventListener('click', ()=>{
+  player.play().then(()=> setDancing(true)).catch(()=>{});
+});
+stopBtn.addEventListener('click', ()=>{
+  player.pause();
+  setDancing(false);   // freeze dancers + unicorn
+});
+prevBtn.addEventListener('click', ()=> setTrack(idx-1, true));
+nextBtn.addEventListener('click', ()=> setTrack(idx+1, true));
+shufBtn.addEventListener('click', ()=> setTrack(Math.floor(Math.random()*TRACKS.length), true));
+randBtn.addEventListener('click', randomOutfit);
+
+/* ===== Init ===== */
+setTrack(idx>=0?idx:0,false);
+player.volume = vol.value/100;
+paint(vol, vol.value);
+paint(seek, 0);
+nowTitle.textContent = (TRACKS[idx]?.name || TRACKS[idx]?.file || '—');
+setDancing(false); // start paused until they hit Start
+</script>
+</body>
+</html>

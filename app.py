@@ -1,0 +1,62 @@
+from __future__ import annotations
+from flask import Flask, render_template, request, url_for
+from pathlib import Path
+
+app = Flask(__name__)
+
+MUSIC_DIR = Path("static/music")
+
+def list_tracks():
+    """
+    Build a playlist from static/music. Returns a list of dicts:
+    [{ "file": "mixkit-a-happy-child-532.mp3", "name": "A Happy Child" }, ...]
+    """
+    tracks = []
+    for p in sorted(MUSIC_DIR.glob("*.mp3")):
+        file = p.name
+        # Pretty label (remove "mixkit-" and numbers, hyphens -> spaces)
+        label = (
+            file.replace("mixkit-", "")
+                .rsplit(".", 1)[0]
+        )
+        # Drop trailing ids like "-532"
+        parts = label.split("-")
+        if parts and parts[-1].isdigit():
+            parts = parts[:-1]
+        label = " ".join(parts).title()
+        tracks.append({"file": file, "name": label})
+    return tracks
+
+@app.route("/")
+def home():
+    return render_template("home.html", tracks=list_tracks())
+
+@app.route("/play", methods=["POST"])
+def play():
+    name   = request.form.get("name") or "Magical Dancer"
+    outfit = request.form.get("outfit") or "Sparkle Dress"
+    music  = request.form.get("music") or (list_tracks()[0]["file"] if list_tracks() else "")
+    return render_template(
+        "game.html",
+        name=name,
+        outfit=outfit,
+        music=music,
+        tracks=list_tracks(),
+    )
+
+if __name__ == "__main__":
+    import os
+    port = int(os.environ.get("PORT", 5050))
+    # LaunchAgent run: no debug, no reloader
+    app.run(host="0.0.0.0", port=port, debug=False, use_reloader=False)
+
+if __name__ == "__main__":
+    import os
+    port = int(os.environ.get("PORT", 5050))
+    # LaunchAgent run: no debug, no reloader
+    app.run(host="0.0.0.0", port=port, debug=False, use_reloader=False)
+
+if __name__ == "__main__":
+    import os
+    port = int(os.environ.get("PORT", 5050))
+    app.run(host="0.0.0.0", port=port, debug=False, use_reloader=False)
