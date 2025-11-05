@@ -1,0 +1,56 @@
+name: Ping & Alert (5 min)
+
+on:
+  schedule:
+    - cron: "*/5 * * * *"     # every 5 minutes (UTC)
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  issues: write               # needed to open an alert issue
+
+jobs:
+  ping_and_alert:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    env:
+      URL: "https://unicorn-dance.onrender.com/"
+    steps:
+      - name: Ping app (with retries)
+        id: ping
+        run: |
+          echo "Pinging: $URL"
+          ok=1
+          for i in 1 2 3 4 5; do
+            if curl -I -L --max-time 20 "$URL" ; then
+              ok=0
+              break
+            fi
+            echo "Attempt $i failed; retrying in 5s..."
+            sleep 5
+          done
+          echo "UP=$([ $ok -eq 0 ] && echo true || echo false)" >> $GITHUB_ENV
+          exit $ok
+
+      - name: Create alert issue if DOWN
+        if: env.UP == 'false'
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const title = `ALERT: Unicorn Dance appears DOWN (run ${context.runNumber})`;
+            const body = [
+              `Ping to ${process.env.URL} failed in workflow run #${context.runNumber}.`,
+              `Time: ${new Date().toISOString()}`,
+              '',
+              'Next steps:',
+              '1) Open Render and check service logs',
+              '2) Try loading the site manually',
+              '3) Re-run the workflow after any fix'
+            ].join('\n');
+            await github.rest.issues.create({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              title,
+              body,
+              labels: ['alert','uptime']
+            });
