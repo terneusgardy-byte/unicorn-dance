@@ -15,9 +15,9 @@ jobs:
     steps:
       - name: Ping app
         run: |
-          echo "Pinging: https://your-live-unicorn-url.example.com/"
+          echo "Pinging: https://unicorn-dance.onrender.com/"
           for i in 1 2 3 4 5; do
-            curl -I --max-time 20 "https://your-live-unicorn-url.example.com/" && exit 0
+            curl -I -L --max-time 20 "https://unicorn-dance.onrender.com/" && exit 0
             echo "Attempt $i failed; retrying in 5s..."
             sleep 5
           done
